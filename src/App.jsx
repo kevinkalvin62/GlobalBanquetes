@@ -7,15 +7,15 @@ import GlobalBanquetes from './components/GlobalBanquetes.jsx';
 import Mobiliario from './components/mobiliario.jsx';
 import Nosotros from './components/nosotros.jsx';
 import Servicios from './components/servicios.jsx';
+import ScrollToTop from './components/ScrollToTop.jsx'; 
 
 function App() {
   return (
     <Router>
+      <ScrollToTop /> 
       <div className="App min-h-screen">
-        {/* Navbar fijo en todas las páginas */}
         <Navbar />
         
-        {/* Contenido de las páginas */}
         <Routes>
           <Route path="/" element={<GlobalBanquetes />} />
           <Route path="/nosotros" element={<Nosotros />} />
