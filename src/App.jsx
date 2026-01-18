@@ -8,6 +8,7 @@ import Mobiliario from './components/mobiliario.jsx';
 import Nosotros from './components/nosotros.jsx';
 import Servicios from './components/servicios.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx'; 
+import AdminPanel from './components/AdminPanel.jsx';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         
         <Routes>
           <Route path="/" element={<GlobalBanquetes />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="/nosotros" element={<Nosotros />} />
           <Route path="/servicios" element={<Servicios/>} />
           <Route path="/mobiliario" element={<Mobiliario />} />

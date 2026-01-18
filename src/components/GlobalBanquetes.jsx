@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Star, Heart, Users, Sparkles, Camera, Mail, Phone } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // ← NUEVO: Para navegación
+import { useNavigate } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 // 🖼️ CONFIGURACIÓN DE IMÁGENES
 const IMAGES = {
@@ -16,12 +18,56 @@ const IMAGES = {
   }
 };
 
+// Valores por defecto
+const DEFAULT_DATA = {
+  inicio: {
+    heroTitulo: 'Momentos',
+    heroSubtitulo: 'Inolvidables',
+    heroDescripcion: 'Creamos experiencias que perduran para siempre',
+    bienvenidaTitulo: 'Bienvenidos a Global Banquetes',
+    parrafo1: 'En Global Banquetes, nos dedicamos a crear experiencias únicas para tus momentos más importantes. Desde nuestras humildes raíces hasta convertirnos en una empresa líder en organización de eventos.',
+    parrafo2: 'Nuestros servicios están diseñados con amor, detalle y profesionalismo para garantizar que cada evento sea inolvidable.'
+  },
+  servicios: [
+    { id: 1, nombre: 'Eventos', descripcion: 'Organización completa de eventos memorables', icono: '🎉' },
+    { id: 2, nombre: 'Banquetes & Bebidas', descripcion: 'Gastronomía excepcional para cada ocasión', icono: '🍽️' },
+    { id: 3, nombre: 'Ceremonias', descripcion: 'Ceremonias elegantes y personalizadas', icono: '💒' }
+  ],
+  contacto: {
+    telefono: '+52 222 459 8802',
+    email: 'globalbanquetes@gmail.com'
+  }
+};
+
 const GlobalBanquetes = () => {
-  const navigate = useNavigate(); // ← NUEVO: Hook para navegación
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [visibleSections, setVisibleSections] = useState({});
   const sectionsRef = useRef({});
+  
+  // 🔥 Estado para datos desde Firebase
+  const [data, setData] = useState(DEFAULT_DATA);
+
+  // 🔥 Cargar datos desde Firebase
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const docRef = doc(db, 'configuracion', 'sitio');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const firebaseData = docSnap.data();
+          setData(firebaseData);
+        }
+      } catch (error) {
+        console.error('Error al cargar datos:', error);
+        // Si hay error, usa los datos por defecto
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Scroll animations
   useEffect(() => {
@@ -75,8 +121,6 @@ const GlobalBanquetes = () => {
         ))}
       </div>
 
-      {/* ❌ ELIMINADO: El Navbar ya no está aquí, ahora está en App.jsx */}
-
       {/* Hero Carousel */}
       <section className="relative h-screen w-full overflow-hidden">
         <div className="relative h-full w-full">
@@ -93,7 +137,7 @@ const GlobalBanquetes = () => {
             </div>
           ))}
 
-          {/* Carousel Content */}
+          {/* Carousel Content - 🔥 DATOS DINÁMICOS */}
           <div className="absolute inset-0 flex items-center justify-center px-4">
             <div className="text-center text-white max-w-4xl animate-fadeInUp">
               <div className="mb-6 inline-block">
@@ -101,15 +145,14 @@ const GlobalBanquetes = () => {
               </div>
               <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
                 <span className="bg-gradient-to-r from-amber-200 via-rose-200 to-orange-200 bg-clip-text text-transparent drop-shadow-2xl">
-                  Momentos
+                  {data.inicio?.heroTitulo || 'Momentos'}
                 </span>
                 <br />
-                <span className="drop-shadow-2xl">Inolvidables</span>
+                <span className="drop-shadow-2xl">{data.inicio?.heroSubtitulo || 'Inolvidables'}</span>
               </h2>
               <p className="text-xl md:text-3xl mb-10 drop-shadow-lg text-amber-100 font-light">
-                Creamos experiencias que perduran para siempre
+                {data.inicio?.heroDescripcion || 'Creamos experiencias que perduran para siempre'}
               </p>
-              {/* ✅ CAMBIADO: onClick con navigate en lugar de href */}
               <button 
                 onClick={() => navigate('/servicios')}
                 className="group relative bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 hover:from-amber-500 hover:via-orange-500 hover:to-rose-500 text-white px-10 py-5 rounded-full text-lg font-bold shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden"
@@ -154,7 +197,7 @@ const GlobalBanquetes = () => {
         </div>
       </section>
 
-      {/* Welcome Section */}
+      {/* Welcome Section - 🔥 DATOS DINÁMICOS */}
       <section 
         ref={el => sectionsRef.current['welcome'] = el}
         className={`py-24 px-4 relative overflow-hidden transition-all duration-1000 ${
@@ -169,7 +212,7 @@ const GlobalBanquetes = () => {
           </div>
           
           <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 bg-clip-text text-transparent">
-            Bienvenidos a Global Banquetes
+            {data.inicio?.bienvenidaTitulo || 'Bienvenidos a Global Banquetes'}
           </h2>
           
           <div className="flex justify-center mb-10">
@@ -178,12 +221,10 @@ const GlobalBanquetes = () => {
           
           <div className="max-w-3xl mx-auto space-y-6 text-lg text-gray-700 leading-relaxed">
             <p className="bg-white/50 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-amber-100">
-              En Global Banquetes, nos dedicamos a crear <span className="font-bold text-amber-600">experiencias únicas</span> para tus momentos más importantes. 
-              Desde nuestras humildes raíces hasta convertirnos en una empresa líder en organización de eventos.
+              {data.inicio?.parrafo1 || 'En Global Banquetes, nos dedicamos a crear experiencias únicas para tus momentos más importantes.'}
             </p>
             <p className="bg-white/50 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-rose-100">
-              Nuestros servicios están diseñados con <span className="font-bold text-rose-600">amor, detalle y profesionalismo</span> 
-              para garantizar que cada evento sea inolvidable.
+              {data.inicio?.parrafo2 || 'Nuestros servicios están diseñados con amor, detalle y profesionalismo para garantizar que cada evento sea inolvidable.'}
             </p>
           </div>
 
@@ -218,7 +259,7 @@ const GlobalBanquetes = () => {
         </div>
       </section>
 
-      {/* Services Cards */}
+      {/* Services Cards - 🔥 DATOS DINÁMICOS */}
       <section 
         ref={el => sectionsRef.current['services'] = el}
         className={`min-h-screen flex items-center py-24 px-4 relative overflow-hidden transition-all duration-1000 ${
@@ -236,50 +277,31 @@ const GlobalBanquetes = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {[
-              { 
-                title: 'Eventos', 
-                img: IMAGES.services.eventos, 
-                desc: 'Organización completa de eventos memorables',
-                path: '/servicios'
-              },
-              { 
-                title: 'Banquetes & Bebidas', 
-                img: IMAGES.services.banquetes, 
-                desc: 'Gastronomía excepcional para cada ocasión',
-                path: '/servicios'
-              },
-              { 
-                title: 'Ceremonias', 
-                img: IMAGES.services.ceremonias, 
-                desc: 'Ceremonias elegantes y personalizadas',
-                path: '/servicios'
-              }
-            ].map((service, idx) => (
+            {data.servicios?.slice(0, 3).map((servicio, idx) => (
               <div
-                key={idx}
-                onClick={() => navigate(service.path)}
+                key={servicio.id}
+                onClick={() => navigate('/servicios')}
                 className="group relative h-[550px] rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transform hover:-translate-y-3 transition-all duration-700 cursor-pointer"
                 style={{ animationDelay: `${idx * 0.15}s` }}
               >
                 {/* Image */}
                 <img 
-                  src={service.img} 
-                  alt={service.title} 
+                  src={Object.values(IMAGES.services)[idx]} 
+                  alt={servicio.nombre} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
                 />
                 
-                {/* Subtle Gradient Overlay - Solo en la parte inferior */}
+                {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500"></div>
                 
-                {/* Content - Siempre visible pero más limpio */}
+                {/* Content */}
                 <div className="absolute inset-0 flex flex-col justify-end p-8">
                   <div className="transform transition-transform duration-500">
                     <h3 className="text-4xl font-bold text-white mb-3 drop-shadow-2xl">
-                      {service.title}
+                      {servicio.nombre}
                     </h3>
                     <p className="text-white/95 text-lg mb-6 drop-shadow-lg">
-                      {service.desc}
+                      {servicio.descripcion}
                     </p>
                     <button className="bg-white/90 backdrop-blur-sm hover:bg-white text-gray-800 px-8 py-3 rounded-full font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
                       Ver más
@@ -295,7 +317,7 @@ const GlobalBanquetes = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section - 🔥 DATOS DINÁMICOS */}
       <section className="relative py-32 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500"></div>
         <div className="absolute inset-0 opacity-20">
@@ -317,7 +339,6 @@ const GlobalBanquetes = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            {/* ✅ CAMBIADO: navigate en lugar de href */}
             <button 
               onClick={() => navigate('/contacto')}
               className="group relative bg-white text-amber-600 px-10 py-5 rounded-full text-xl font-bold shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 overflow-hidden"
@@ -343,11 +364,11 @@ const GlobalBanquetes = () => {
           <div className="mt-16 flex flex-wrap justify-center gap-8 text-white">
             <div className="flex items-center gap-2">
               <Phone className="opacity-80" size={20} />
-              <span className="text-lg">+52 222 459 8802</span>
+              <span className="text-lg">{data.contacto?.telefono || '+52 222 459 8802'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="opacity-80" size={20} />
-              <span className="text-lg">globalbanquetes@gmail.com</span>
+              <span className="text-lg">{data.contacto?.email || 'globalbanquetes@gmail.com'}</span>
             </div>
           </div>
         </div>
