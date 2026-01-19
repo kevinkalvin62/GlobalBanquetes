@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Check, Star, TrendingUp, Package, ChevronRight } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const Mobiliario = () => {
   const navigate = useNavigate();
@@ -8,25 +10,8 @@ const Mobiliario = () => {
   const [selectedPackage, setSelectedPackage] = useState(null);
   const sectionsRef = useRef({});
 
-  // Scroll animations
-  useEffect(() => {
-    const handleScroll = () => {
-      Object.keys(sectionsRef.current).forEach(key => {
-        const element = sectionsRef.current[key];
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          const isVisible = rect.top < window.innerHeight * 0.8;
-          setVisibleSections(prev => ({ ...prev, [key]: isVisible }));
-        }
-      });
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const paquetes = [
+  // 🔥 Estado para paquetes desde Firebase
+  const [paquetes, setPaquetes] = useState([
     {
       id: 1,
       nombre: 'Paquete Vintage Top T1',
@@ -81,7 +66,46 @@ const Mobiliario = () => {
       gradient: 'from-rose-500 to-red-500',
       badge: 'Mejor Precio'
     }
-  ];
+  ]);
+
+  // 🔥 Cargar paquetes desde Firebase
+  useEffect(() => {
+    const loadPaquetes = async () => {
+      try {
+        const docRef = doc(db, 'configuracion', 'paquetes-mobiliario');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.paquetes && data.paquetes.length > 0) {
+            setPaquetes(data.paquetes);
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar paquetes:', error);
+      }
+    };
+
+    loadPaquetes();
+  }, []);
+
+  // Scroll animations
+  useEffect(() => {
+    const handleScroll = () => {
+      Object.keys(sectionsRef.current).forEach(key => {
+        const element = sectionsRef.current[key];
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          const isVisible = rect.top < window.innerHeight * 0.8;
+          setVisibleSections(prev => ({ ...prev, [key]: isVisible }));
+        }
+      });
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const categorias = [
     {
@@ -227,14 +251,13 @@ const Mobiliario = () => {
                   </div>
                 )}
 
-                {/* Image - SIN OVERLAY DE COLOR */}
+                {/* Image */}
                 <div className="relative h-72 overflow-hidden">
                   <img 
                     src={paquete.imagen} 
                     alt={paquete.nombre} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                   />
-                  {/* Solo degradado oscuro sutil en la parte inferior para legibilidad */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
                 </div>
 
@@ -247,7 +270,6 @@ const Mobiliario = () => {
                     <p className="text-gray-600 text-sm mb-3">
                       {paquete.descripcion}
                     </p>
-                    {/* Precio centrado */}
                     <div className="flex justify-center">
                       <div className={`inline-block bg-gradient-to-r ${paquete.gradient} text-white px-6 py-2 rounded-full font-bold text-lg shadow-lg`}>
                         {paquete.precio}
@@ -265,7 +287,7 @@ const Mobiliario = () => {
                         Incluye:
                       </h4>
                       <ul className="space-y-2">
-                        {paquete.caracteristicas.map((caracteristica, i) => (
+                        {paquete.caracteristicas?.map((caracteristica, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
                             <Check size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
                             <span>{caracteristica}</span>
