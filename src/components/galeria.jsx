@@ -1,74 +1,79 @@
 import React, { useState, useEffect } from 'react';
-import { X, Camera, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { X, Camera, ChevronLeft, ChevronRight, ZoomIn, Loader } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const Galeria = () => {
   const [selectedImage, setSelectedImage] = useState(null);
+  const [imagenes, setImagenes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Todas las imágenes de tu álbum de ImgBB
-  const imagenes = [
-    { id: 1, url: 'https://i.ibb.co/S7NGFVcF/40.jpg', titulo: 'Imagen 40' },
-    { id: 2, url: 'https://i.ibb.co/Q3zfKKkr/39.jpg', titulo: 'Imagen 39' },
-    { id: 3, url: 'https://i.ibb.co/BWygTs1/38.jpg', titulo: 'Imagen 38' },
-    { id: 4, url: 'https://i.ibb.co/21gt2Ypr/37.jpg', titulo: 'Imagen 37' },
-    { id: 5, url: 'https://i.ibb.co/sJw2qkVY/36.jpg', titulo: 'Imagen 36' },
-    { id: 6, url: 'https://i.ibb.co/fYybGHcM/35.jpg', titulo: 'Imagen 35' },
-    { id: 7, url: 'https://i.ibb.co/Y4PB3Hph/34.jpg', titulo: 'Imagen 34' },
-    { id: 8, url: 'https://i.ibb.co/WNZrQVT8/33.jpg', titulo: 'Imagen 33' },
-    { id: 9, url: 'https://i.ibb.co/svz6SY2r/32.jpg', titulo: 'Imagen 32' },
-    { id: 10, url: 'https://i.ibb.co/FLtc1WqY/31.jpg', titulo: 'Imagen 31' },
-    { id: 11, url: 'https://i.ibb.co/tPX9BBkR/30.jpg', titulo: 'Imagen 30' },
-    { id: 12, url: 'https://i.ibb.co/sdG5rcPV/29.jpg', titulo: 'Imagen 29' },
-    { id: 13, url: 'https://i.ibb.co/G4h8Fx3L/28.jpg', titulo: 'Imagen 28' },
-    { id: 14, url: 'https://i.ibb.co/PvTxTn1W/27.jpg', titulo: 'Imagen 27' },
-    { id: 15, url: 'https://i.ibb.co/bxdwtz5/26.jpg', titulo: 'Imagen 26' },
-    { id: 16, url: 'https://i.ibb.co/XxKTVntP/25.jpg', titulo: 'Imagen 25' },
-    { id: 17, url: 'https://i.ibb.co/WpPXQFP4/24.jpg', titulo: 'Imagen 24' },
-    { id: 18, url: 'https://i.ibb.co/Y6RCTW6/23.jpg', titulo: 'Imagen 23' },
-    { id: 19, url: 'https://i.ibb.co/4gRmg83r/22.jpg', titulo: 'Imagen 22' },
-    { id: 20, url: 'https://i.ibb.co/0pjWbZFW/21.jpg', titulo: 'Imagen 21' },
-    { id: 21, url: 'https://i.ibb.co/Y73BPFR4/20.jpg', titulo: 'Imagen 20' },
-    { id: 22, url: 'https://i.ibb.co/KpM0fxWJ/19.jpg', titulo: 'Imagen 19' },
-    { id: 23, url: 'https://i.ibb.co/B5Cd34Q3/18.jpg', titulo: 'Imagen 18' },
-    { id: 24, url: 'https://i.ibb.co/LdhBCpSk/17.jpg', titulo: 'Imagen 17' },
-    { id: 25, url: 'https://i.ibb.co/k6vRfjbx/16.jpg', titulo: 'Imagen 16' },
-    { id: 26, url: 'https://i.ibb.co/236QBP9L/15.jpg', titulo: 'Imagen 15' },
-    { id: 27, url: 'https://i.ibb.co/cmkFXsq/14.jpg', titulo: 'Imagen 14' },
-    { id: 28, url: 'https://i.ibb.co/ynsyPjf5/13.jpg', titulo: 'Imagen 13' },
-    { id: 29, url: 'https://i.ibb.co/zHDSVK38/12.jpg', titulo: 'Imagen 12' },
-    { id: 30, url: 'https://i.ibb.co/0V2Zmmtp/11.jpg', titulo: 'Imagen 11' },
-    { id: 31, url: 'https://i.ibb.co/5X3rdtqN/10.jpg', titulo: 'Imagen 10' },
-    { id: 32, url: 'https://i.ibb.co/BHcB1fyy/09.jpg', titulo: 'Imagen 09' },
-    { id: 33, url: 'https://i.ibb.co/TnLpb1MQ/08.jpg', titulo: 'Imagen 08' },
-    { id: 34, url: 'https://i.ibb.co/nLYMMTfp/07.jpg', titulo: 'Imagen 07' },
-    { id: 35, url: 'https://i.ibb.co/GdpfVyB8/06.jpg', titulo: 'Imagen 06' },
-    { id: 36, url: 'https://i.ibb.co/6Q0TC8T/05.jpg', titulo: 'Imagen 05' },
-    { id: 37, url: 'https://i.ibb.co/s6HYjqZ/04.jpg', titulo: 'Imagen 04' },
-    { id: 38, url: 'https://i.ibb.co/zKJL7nQ/03.jpg', titulo: 'Imagen 03' },
-    { id: 39, url: 'https://i.ibb.co/n5kgQsZ/02.jpg', titulo: 'Imagen 02' },
-    { id: 40, url: 'https://i.ibb.co/xFDKcw0/01.jpg', titulo: 'Imagen 01' },
-    { id: 41, url: 'https://i.ibb.co/PZq75kY8/42.jpg', titulo: 'Imagen 42' },
-    { id: 42, url: 'https://i.ibb.co/2skRjzP/41.jpg', titulo: 'Imagen 41' },
-    { id: 43, url: 'https://i.ibb.co/nQnWDqyQ/43.jpg', titulo: 'Imagen 43' },
-    { id: 44, url: 'https://i.ibb.co/RMXRDhk/44.jpg', titulo: 'Imagen 44' },
-    { id: 45, url: 'https://i.ibb.co/pW9XMb1n/45.jpg', titulo: 'Imagen 45' },
-    { id: 46, url: 'https://i.ibb.co/rT3zypd/46.jpg', titulo: 'Imagen 46' },
-    { id: 47, url: 'https://i.ibb.co/MRPxjKF/47.jpg', titulo: 'Imagen 47' },
-    { id: 48, url: 'https://i.ibb.co/PckKFRVC/48.jpg', titulo: 'Imagen 48' },
-    { id: 49, url: 'https://i.ibb.co/NKhRdtJ1/49.jpg', titulo: 'Imagen 49' },
-    { id: 50, url: 'https://i.ibb.co/qh45Y36/50.jpg', titulo: 'Imagen 50' },
-    { id: 51, url: 'https://i.ibb.co/HW3ypQB/51.jpg', titulo: 'Imagen 51' },
-    { id: 52, url: 'https://i.ibb.co/WfryFQb/52.jpg', titulo: 'Imagen 52' },
-    { id: 53, url: 'https://i.ibb.co/S6LGnrZC/53.jpg', titulo: 'Imagen 53' },
-    { id: 54, url: 'https://i.ibb.co/3YWMWM1/54.jpg', titulo: 'Imagen 54' },
-    { id: 55, url: 'https://i.ibb.co/8F6s8s3/55.jpg', titulo: 'Imagen 55' },
-    { id: 56, url: 'https://i.ibb.co/DfwYmWQ/56.jpg', titulo: 'Imagen 56' },
-    { id: 57, url: 'https://i.ibb.co/p0Zv7K4/57.jpg', titulo: 'Imagen 57' }
-  ];
+  // Cargar imágenes desde Firebase al montar el componente
+  useEffect(() => {
+    loadGallery();
+  }, []);
+
+  const loadGallery = async () => {
+    try {
+      setLoading(true);
+      
+      // Cargar galería desde Firebase
+      const galleryRef = doc(db, 'configuracion', 'galeria');
+      const gallerySnap = await getDoc(galleryRef);
+      
+      if (gallerySnap.exists()) {
+        const data = gallerySnap.data();
+        if (data.images && data.images.length > 0) {
+          setImagenes(data.images);
+        } else {
+          // Si no hay imágenes en Firebase, cargar las de respaldo
+          loadFallbackImages();
+        }
+      } else {
+        // Si no existe el documento, cargar imágenes de respaldo
+        loadFallbackImages();
+      }
+    } catch (error) {
+      console.error('Error al cargar galería:', error);
+      loadFallbackImages();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Imágenes de respaldo (tus URLs originales de ImgBB)
+  const loadFallbackImages = () => {
+    const fallbackImages = [
+      { id: 1, url: 'https://i.ibb.co/S7NGFVcF/40.jpg', name: 'Imagen 40', thumbnail: 'https://i.ibb.co/S7NGFVcF/40.jpg' },
+      { id: 2, url: 'https://i.ibb.co/Q3zfKKkr/39.jpg', name: 'Imagen 39', thumbnail: 'https://i.ibb.co/Q3zfKKkr/39.jpg' },
+      { id: 3, url: 'https://i.ibb.co/BWygTs1/38.jpg', name: 'Imagen 38', thumbnail: 'https://i.ibb.co/BWygTs1/38.jpg' },
+      { id: 4, url: 'https://i.ibb.co/21gt2Ypr/37.jpg', name: 'Imagen 37', thumbnail: 'https://i.ibb.co/21gt2Ypr/37.jpg' },
+      { id: 5, url: 'https://i.ibb.co/sJw2qkVY/36.jpg', name: 'Imagen 36', thumbnail: 'https://i.ibb.co/sJw2qkVY/36.jpg' },
+      { id: 6, url: 'https://i.ibb.co/fYybGHcM/35.jpg', name: 'Imagen 35', thumbnail: 'https://i.ibb.co/fYybGHcM/35.jpg' },
+      { id: 7, url: 'https://i.ibb.co/Y4PB3Hph/34.jpg', name: 'Imagen 34', thumbnail: 'https://i.ibb.co/Y4PB3Hph/34.jpg' },
+      { id: 8, url: 'https://i.ibb.co/WNZrQVT8/33.jpg', name: 'Imagen 33', thumbnail: 'https://i.ibb.co/WNZrQVT8/33.jpg' },
+      { id: 9, url: 'https://i.ibb.co/svz6SY2r/32.jpg', name: 'Imagen 32', thumbnail: 'https://i.ibb.co/svz6SY2r/32.jpg' },
+      { id: 10, url: 'https://i.ibb.co/FLtc1WqY/31.jpg', name: 'Imagen 31', thumbnail: 'https://i.ibb.co/FLtc1WqY/31.jpg' },
+      { id: 11, url: 'https://i.ibb.co/tPX9BBkR/30.jpg', name: 'Imagen 30', thumbnail: 'https://i.ibb.co/tPX9BBkR/30.jpg' },
+      { id: 12, url: 'https://i.ibb.co/sdG5rcPV/29.jpg', name: 'Imagen 29', thumbnail: 'https://i.ibb.co/sdG5rcPV/29.jpg' },
+      { id: 13, url: 'https://i.ibb.co/G4h8Fx3L/28.jpg', name: 'Imagen 28', thumbnail: 'https://i.ibb.co/G4h8Fx3L/28.jpg' },
+      { id: 14, url: 'https://i.ibb.co/PvTxTn1W/27.jpg', name: 'Imagen 27', thumbnail: 'https://i.ibb.co/PvTxTn1W/27.jpg' },
+      { id: 15, url: 'https://i.ibb.co/bxdwtz5/26.jpg', name: 'Imagen 26', thumbnail: 'https://i.ibb.co/bxdwtz5/26.jpg' },
+      { id: 16, url: 'https://i.ibb.co/XxKTVntP/25.jpg', name: 'Imagen 25', thumbnail: 'https://i.ibb.co/XxKTVntP/25.jpg' },
+      { id: 17, url: 'https://i.ibb.co/WpPXQFP4/24.jpg', name: 'Imagen 24', thumbnail: 'https://i.ibb.co/WpPXQFP4/24.jpg' },
+      { id: 18, url: 'https://i.ibb.co/Y6RCTW6/23.jpg', name: 'Imagen 23', thumbnail: 'https://i.ibb.co/Y6RCTW6/23.jpg' },
+      { id: 19, url: 'https://i.ibb.co/4gRmg83r/22.jpg', name: 'Imagen 22', thumbnail: 'https://i.ibb.co/4gRmg83r/22.jpg' },
+      { id: 20, url: 'https://i.ibb.co/0pjWbZFW/21.jpg', name: 'Imagen 21', thumbnail: 'https://i.ibb.co/0pjWbZFW/21.jpg' }
+      // Agrega el resto de tus imágenes aquí...
+    ];
+    setImagenes(fallbackImages);
+  };
 
   const handleImageClick = (imagen) => {
-    setSelectedImage(imagen);
-    document.body.style.overflow = 'hidden';
-  };
+  console.log('Imagen seleccionada:', imagen); 
+  setSelectedImage(imagen);
+  document.body.style.overflow = 'hidden';
+};
 
   const closeModal = () => {
     setSelectedImage(null);
@@ -97,7 +102,19 @@ const Galeria = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [selectedImage]);
+  }, [selectedImage, imagenes]);
+
+  // Mostrar loader mientras carga
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="animate-spin text-amber-600 mx-auto mb-4" size={48} />
+          <p className="text-gray-600 text-lg">Cargando galería...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50">
@@ -146,36 +163,48 @@ const Galeria = () => {
       {/* Gallery Grid */}
       <section className="py-8 px-4 relative">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {imagenes.map((imagen, idx) => (
-              <div
-                key={imagen.id}
-                className="group relative aspect-square rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-500 cursor-pointer"
-                style={{ animationDelay: `${idx * 0.02}s` }}
-                onClick={() => handleImageClick(imagen)}
-              >
-                {/* Image */}
-                <img 
-                  src={imagen.url} 
-                  alt={imagen.titulo} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                />
-                
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <div className="flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                      <ZoomIn className="text-amber-400" size={18} />
-                      <span className="text-white/90 text-sm font-medium">Ver imagen</span>
+          {imagenes.length === 0 ? (
+            <div className="text-center py-20">
+              <Camera className="mx-auto text-gray-400 mb-4" size={64} />
+              <p className="text-gray-500 text-lg">No hay imágenes en la galería</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {imagenes.map((imagen, idx) => (
+                <div
+                  key={imagen.id}
+                  className="group relative aspect-square rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-500 cursor-pointer"
+                  style={{ animationDelay: `${idx * 0.02}s` }}
+                  onClick={() => handleImageClick(imagen)}
+                >
+                  {/* Image */}
+                  <img 
+                    src={imagen.thumbnail || imagen.url} 
+                    alt={imagen.name || `Imagen ${idx + 1}`} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    loading="lazy"
+                    onError={(e) => {
+                      // Si falla el thumbnail, usar la URL principal
+                      e.target.src = imagen.url;
+                    }}
+                  />
+                  
+                  {/* Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <div className="flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <ZoomIn className="text-amber-400" size={18} />
+                        <span className="text-white/90 text-sm font-medium">Ver imagen</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              </div>
-            ))}
-          </div>
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -210,13 +239,17 @@ const Galeria = () => {
           </button>
 
           {/* Image */}
-          <div className="max-w-6xl max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={selectedImage.url} 
-              alt={selectedImage.titulo}
-              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-            />
-          </div>
+<div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+  <img 
+    src={selectedImage.url} 
+    alt={selectedImage.name || 'Imagen'}
+    className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+    onError={(e) => {
+      console.error('Error al cargar imagen:', selectedImage);
+      e.target.src = selectedImage.thumbnail || selectedImage.url;
+    }}
+  />
+</div>
 
           {/* Counter */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full">

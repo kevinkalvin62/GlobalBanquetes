@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Eye, Settings, FileText, Mail, Users, Loader, LogOut, Plus, Trash2, List, Box } from 'lucide-react';
+import { Save, Eye, Settings, FileText, Mail, Users, Loader, LogOut, Plus, Trash2, List, Box, Image as ImageIcon } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import Login from './Login';
+import GalleryAdmin from './GalleryAdmin';
 
 const AdminPanel = () => {
   const [user, setUser] = useState(null);
@@ -268,22 +269,22 @@ const AdminPanel = () => {
   };
 
   // 🔥 NUEVO: Agregar paquete de mobiliario
-const addPaquete = () => {
-  setPaquetesMobiliario(prev => [
-    ...prev,
-    {
-      id: Date.now(),
-      nombre: 'Nuevo Paquete',
-      precio: 'Consultar',  // ← Cambiado de '$0' a 'Consultar'
-      imagen: 'https://i.ibb.co/rfchgMcR/24.jpg',
-      descripcion: 'Descripción del paquete',
-      caracteristicas: ['Característica 1', 'Característica 2'],
-      destacado: false,
-      gradient: 'from-amber-500 to-orange-500',
-      badge: ''
-    }
-  ]);
-};
+  const addPaquete = () => {
+    setPaquetesMobiliario(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        nombre: 'Nuevo Paquete',
+        precio: 'Consultar',  // ← Cambiado de '$0' a 'Consultar'
+        imagen: 'https://i.ibb.co/rfchgMcR/24.jpg',
+        descripcion: 'Descripción del paquete',
+        caracteristicas: ['Característica 1', 'Característica 2'],
+        destacado: false,
+        gradient: 'from-amber-500 to-orange-500',
+        badge: ''
+      }
+    ]);
+  };
 
   // 🔥 NUEVO: Actualizar paquete
   const updatePaquete = (id, field, value) => {
@@ -365,8 +366,8 @@ const addPaquete = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-amber-600 to-rose-600 text-white p-6 shadow-lg z-40 mt-16">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-amber-600 to-rose-600 text-white p-4 md:p-6 shadow-lg z-40 mt-16">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Settings size={32} />
             <div>
@@ -375,7 +376,7 @@ const addPaquete = () => {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             <a
               href="/"
               target="_blank"
@@ -419,11 +420,11 @@ const addPaquete = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto p-6 pt-44">
-        <div className="grid grid-cols-12 gap-6">
+        <div className="max-w-7xl mx-auto p-4 md:p-6 pt-44 md:pt-44">
 
           {/* Sidebar */}
-          <div className="col-span-3">
-            <div className="bg-white rounded-lg shadow-md p-4 sticky top-44">
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-lg shadow-md p-4 lg:sticky lg:top-44">
               <nav className="space-y-2">
                 <button
                   onClick={() => setActiveTab('inicio')}
@@ -480,6 +481,16 @@ const addPaquete = () => {
                   <Box size={20} />
                   Paquetes Mobiliario
                 </button>
+                <button
+                  onClick={() => setActiveTab('galeria')}
+                  className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-colors ${activeTab === 'galeria'
+                      ? 'bg-amber-100 text-amber-700 font-semibold'
+                      : 'hover:bg-gray-100'
+                    }`}
+                >
+                  <ImageIcon size={20} />
+                  Galería
+                </button>
 
                 <button
                   onClick={() => setActiveTab('contacto')}
@@ -496,7 +507,7 @@ const addPaquete = () => {
           </div>
 
           {/* Content */}
-          <div className="col-span-9">
+          <div className="lg:col-span-9">
             <div className="bg-white rounded-lg shadow-md p-8">
 
               {/* TAB: INICIO */}
@@ -679,7 +690,7 @@ const addPaquete = () => {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Nombre del Servicio
@@ -732,14 +743,14 @@ const addPaquete = () => {
                     <p className="text-sm text-gray-600">Estos servicios se mostrarán en el modal cuando los usuarios hagan clic en "Ver Servicios"</p>
                   </div>
                   {/* Selector de categoría */}
-                  <div className="flex gap-2 overflow-x-auto pb-2">
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
                     {Object.entries(categorias).map(([key, cat]) => (
                       <button
                         key={key}
                         onClick={() => setSelectedCategoria(key)}
                         className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition-all ${selectedCategoria === key
-                            ? `bg-${cat.color}-100 text-${cat.color}-700 ring-2 ring-${cat.color}-500`
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? `bg-${cat.color}-100 text-${cat.color}-700 ring-2 ring-${cat.color}-500`
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                           }`}
                       >
                         {cat.nombre} ({serviciosDetallados[key]?.length || 0})
@@ -883,7 +894,7 @@ const addPaquete = () => {
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Nombre del Paquete
@@ -940,7 +951,8 @@ const addPaquete = () => {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Badge (opcional)
@@ -1022,13 +1034,14 @@ const addPaquete = () => {
                   )}
                 </div>
               )}
+              {activeTab === 'galeria' && <GalleryAdmin />}
 
               {/* TAB: CONTACTO */}
               {activeTab === 'contacto' && (
                 <div className="space-y-6">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6">Información de Contacto</h2>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Teléfono
