@@ -70,10 +70,10 @@ const Galeria = () => {
   };
 
   const handleImageClick = (imagen) => {
-  console.log('Imagen seleccionada:', imagen); 
-  setSelectedImage(imagen);
-  document.body.style.overflow = 'hidden';
-};
+    console.log('Imagen seleccionada:', imagen); 
+    setSelectedImage(imagen);
+    document.body.style.overflow = 'hidden';
+  };
 
   const closeModal = () => {
     setSelectedImage(null);
@@ -103,6 +103,13 @@ const Galeria = () => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [selectedImage, imagenes]);
+
+  // ✅ NUEVO useEffect para cleanup cuando se desmonta el componente
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
 
   // Mostrar loader mientras carga
   if (loading) {
@@ -239,17 +246,17 @@ const Galeria = () => {
           </button>
 
           {/* Image */}
-<div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-  <img 
-    src={selectedImage.url} 
-    alt={selectedImage.name || 'Imagen'}
-    className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
-    onError={(e) => {
-      console.error('Error al cargar imagen:', selectedImage);
-      e.target.src = selectedImage.thumbnail || selectedImage.url;
-    }}
-  />
-</div>
+          <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <img 
+              src={selectedImage.url} 
+              alt={selectedImage.name || 'Imagen'}
+              className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+              onError={(e) => {
+                console.error('Error al cargar imagen:', selectedImage);
+                e.target.src = selectedImage.thumbnail || selectedImage.url;
+              }}
+            />
+          </div>
 
           {/* Counter */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full">

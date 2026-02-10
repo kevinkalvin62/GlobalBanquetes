@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Trash2, Loader, Image as ImageIcon, Plus, AlertCircle } from 'lucide-react';
+import { Upload, Trash2, Loader, Image as ImageIcon, Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -11,6 +11,10 @@ const GalleryAdmin = () => {
     cloudName: '',
     uploadPreset: ''
   });
+  
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const imagesPerPage = 12; // Mostrar 12 imágenes por página
 
   useEffect(() => {
     loadGalleryData();
@@ -62,13 +66,11 @@ const GalleryAdmin = () => {
       return;
     }
 
-    // Validar que sea una imagen
     if (!file.type.startsWith('image/')) {
       alert('Por favor selecciona un archivo de imagen válido');
       return;
     }
 
-    // Validar tamaño (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
       alert('La imagen es muy grande. Máximo 10MB');
       return;
@@ -104,6 +106,7 @@ const GalleryAdmin = () => {
         setImages(updatedImages);
         await saveImages(updatedImages);
         alert('✓ Imagen subida exitosamente');
+        setCurrentPage(1); // Volver a la primera página
       } else {
         throw new Error('Error al subir imagen');
       }
@@ -112,6 +115,7 @@ const GalleryAdmin = () => {
       alert('Error al subir la imagen. Verifica tu configuración de Cloudinary.');
     } finally {
       setUploading(false);
+      event.target.value = ''; // Limpiar input
     }
   };
 
@@ -152,6 +156,12 @@ const GalleryAdmin = () => {
     }
   };
 
+  // Calcular imágenes para la página actual
+  const indexOfLastImage = currentPage * imagesPerPage;
+  const indexOfFirstImage = indexOfLastImage - imagesPerPage;
+  const currentImages = images.slice(indexOfFirstImage, indexOfLastImage);
+  const totalPages = Math.ceil(images.length / imagesPerPage);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -191,9 +201,6 @@ const GalleryAdmin = () => {
                   placeholder="tu-cloud-name"
                   className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                 />
-                <p className="text-xs text-blue-700 mt-1">
-                  Tu Cloud Name de Cloudinary
-                </p>
               </div>
 
               <div>
@@ -207,9 +214,6 @@ const GalleryAdmin = () => {
                   placeholder="tu-upload-preset"
                   className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                 />
-                <p className="text-xs text-blue-700 mt-1">
-                  Tu Upload Preset (debe ser "unsigned")
-                </p>
               </div>
 
               <button
@@ -218,18 +222,6 @@ const GalleryAdmin = () => {
               >
                 Guardar Configuración
               </button>
-            </div>
-
-            <div className="mt-4 p-3 bg-white rounded border border-blue-200">
-              <p className="text-xs font-semibold text-blue-900 mb-2">📋 Configuración de Cloudinary (solo una vez):</p>
-              <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Ve a <a href="https://cloudinary.com/users/register_free" target="_blank" rel="noopener noreferrer" className="underline text-blue-600">cloudinary.com</a> y crea una cuenta gratis</li>
-                <li>En el Dashboard, copia tu "Cloud Name"</li>
-                <li>Ve a Settings → Upload → Upload Presets</li>
-                <li>Crea un nuevo preset "unsigned" (modo: Unsigned)</li>
-                <li>Copia el nombre del preset</li>
-                <li>Pega ambos valores arriba y guarda</li>
-              </ol>
             </div>
           </div>
         </div>
@@ -277,6 +269,29 @@ const GalleryAdmin = () => {
           <h3 className="text-xl font-bold text-gray-800">
             Imágenes en la Galería ({images.length})
           </h3>
+          
+          {/* Paginación superior */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className="text-sm text-gray-600">
+                Página {currentPage} de {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          )}
         </div>
 
         {images.length === 0 ? (
@@ -288,40 +303,82 @@ const GalleryAdmin = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {images.map((image) => (
-              <div key={image.id} className="group relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square overflow-hidden bg-gray-100">
-                  <img
-                    src={image.thumbnail || image.url}
-                    alt={image.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    onError={(e) => {
-                      e.target.src = image.url;
-                    }}
-                  />
-                </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {currentImages.map((image) => (
+                <div key={image.id} className="group relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
+                  <div className="aspect-square overflow-hidden bg-gray-100">
+                    <img
+                      src={image.thumbnail || image.url}
+                      alt={image.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23f3f4f6" width="400" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EImagen no disponible%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                  </div>
 
-                <div className="p-3">
-                  <p className="text-xs text-gray-600 truncate" title={image.name}>
-                    {image.name}
-                  </p>
+                  <div className="p-3">
+                    <p className="text-xs text-gray-600 truncate" title={image.name}>
+                      {image.name}
+                    </p>
 
-                  <button
-                    onClick={() => deleteImage(image.id)}
-                    className="mt-2 w-full bg-red-50 text-red-600 px-3 py-2 rounded hover:bg-red-100 transition-colors flex items-center justify-center gap-2 text-sm"
-                  >
-                    <Trash2 size={16} />
-                    Eliminar
-                  </button>
-                </div>
+                    <button
+                      onClick={() => deleteImage(image.id)}
+                      className="mt-2 w-full bg-red-50 text-red-600 px-3 py-2 rounded hover:bg-red-100 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                      <Trash2 size={16} />
+                      Eliminar
+                    </button>
+                  </div>
 
-                <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                  Vista previa
+                  <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                    Vista previa
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Paginación inferior */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  Primera
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                
+                <span className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg font-semibold">
+                  {currentPage} / {totalPages}
+                </span>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  Última
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
