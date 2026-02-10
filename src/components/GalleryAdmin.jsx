@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Trash2, Loader, Image as ImageIcon, Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Trash2, Loader, Image as ImageIcon, Plus, AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -16,8 +16,22 @@ const GalleryAdmin = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const imagesPerPage = 12; // Mostrar 12 imágenes por página
 
+  // 🔥 NUEVO: Estado para progreso de subida múltiple
+  const [uploadProgress, setUploadProgress] = useState({
+    total: 0,
+    current: 0,
+    files: []
+  });
+
   useEffect(() => {
     loadGalleryData();
+  }, []);
+
+  // ✅ NUEVO useEffect para cleanup cuando se desmonta el componente
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
   }, []);
 
   const loadGalleryData = async () => {
@@ -56,7 +70,137 @@ const GalleryAdmin = () => {
     }
   };
 
-  // Subir imagen a Cloudinary
+  // 🔥 NUEVO: Subir múltiples imágenes
+  const handleMultipleImageUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
+      alert('Por favor configura Cloudinary primero (Cloud Name y Upload Preset)');
+      return;
+    }
+
+    // Validar archivos
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} no es una imagen válida`);
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`${file.name} es muy grande. Máximo 10MB`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) {
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadProgress({
+        total: validFiles.length,
+        current: 0,
+        files: validFiles.map(f => ({ name: f.name, status: 'pending' }))
+      });
+
+      const uploadedImages = [];
+
+      // Subir archivos uno por uno
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        
+        // Actualizar progreso
+        setUploadProgress(prev => ({
+          ...prev,
+          current: i,
+          files: prev.files.map((f, idx) => 
+            idx === i ? { ...f, status: 'uploading' } : f
+          )
+        }));
+
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+          const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`,
+            {
+              method: 'POST',
+              body: formData
+            }
+          );
+
+          const data = await response.json();
+
+          if (data.secure_url) {
+            const newImage = {
+              id: data.public_id || `${Date.now()}-${i}`,
+              url: data.secure_url,
+              thumbnail: data.secure_url.replace('/upload/', '/upload/w_400,h_400,c_fill/'),
+              name: file.name,
+              createdAt: new Date().toISOString()
+            };
+
+            uploadedImages.push(newImage);
+
+            // Actualizar estado del archivo
+            setUploadProgress(prev => ({
+              ...prev,
+              files: prev.files.map((f, idx) => 
+                idx === i ? { ...f, status: 'success' } : f
+              )
+            }));
+          } else {
+            throw new Error('Error al subir imagen');
+          }
+        } catch (error) {
+          console.error(`Error al subir ${file.name}:`, error);
+          setUploadProgress(prev => ({
+            ...prev,
+            files: prev.files.map((f, idx) => 
+              idx === i ? { ...f, status: 'error' } : f
+            )
+          }));
+        }
+      }
+
+      // Guardar todas las imágenes subidas exitosamente
+      if (uploadedImages.length > 0) {
+        const updatedImages = [...uploadedImages, ...images];
+        setImages(updatedImages);
+        await saveImages(updatedImages);
+        
+        const successCount = uploadedImages.length;
+        const failCount = validFiles.length - successCount;
+        
+        if (failCount > 0) {
+          alert(`✓ ${successCount} imagen(es) subida(s) exitosamente.\n⚠️ ${failCount} imagen(es) falló(fallaron).`);
+        } else {
+          alert(`✓ ${successCount} imagen(es) subida(s) exitosamente`);
+        }
+        
+        setCurrentPage(1); // Volver a la primera página
+      }
+
+      // Limpiar progreso después de 2 segundos
+      setTimeout(() => {
+        setUploadProgress({ total: 0, current: 0, files: [] });
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error general al subir imágenes:', error);
+      alert('Error al subir las imágenes. Verifica tu configuración de Cloudinary.');
+    } finally {
+      setUploading(false);
+      event.target.value = ''; // Limpiar input
+    }
+  };
+
+  // Subir imagen individual (mantenido por compatibilidad)
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -229,6 +373,7 @@ const GalleryAdmin = () => {
 
       {/* Botones de acción */}
       <div className="flex flex-wrap gap-3">
+        {/* 🔥 NUEVO: Botón para subir múltiples imágenes */}
         <label className={`px-6 py-3 rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
           uploading || !cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset
             ? 'bg-gray-400 cursor-not-allowed'
@@ -237,7 +382,8 @@ const GalleryAdmin = () => {
           <input
             type="file"
             accept="image/*"
-            onChange={handleImageUpload}
+            multiple
+            onChange={handleMultipleImageUpload}
             disabled={uploading || !cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset}
             className="hidden"
           />
@@ -249,7 +395,7 @@ const GalleryAdmin = () => {
           ) : (
             <>
               <Upload size={20} />
-              Subir Imagen
+              Subir Imágenes (Múltiples)
             </>
           )}
         </label>
@@ -262,6 +408,48 @@ const GalleryAdmin = () => {
           Agregar por URL
         </button>
       </div>
+
+      {/* 🔥 NUEVO: Indicador de progreso de subida */}
+      {uploadProgress.total > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-gray-800">
+              Subiendo imágenes: {uploadProgress.current + 1} / {uploadProgress.total}
+            </h4>
+            <span className="text-sm text-gray-600">
+              {Math.round(((uploadProgress.current + 1) / uploadProgress.total) * 100)}%
+            </span>
+          </div>
+
+          {/* Barra de progreso */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <div
+              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((uploadProgress.current + 1) / uploadProgress.total) * 100}%` }}
+            ></div>
+          </div>
+
+          {/* Lista de archivos */}
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {uploadProgress.files.map((file, idx) => (
+              <div key={idx} className="flex items-center justify-between text-sm">
+                <span className="text-gray-700 truncate flex-1">{file.name}</span>
+                <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${
+                  file.status === 'success' ? 'bg-green-100 text-green-700' :
+                  file.status === 'error' ? 'bg-red-100 text-red-700' :
+                  file.status === 'uploading' ? 'bg-blue-100 text-blue-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {file.status === 'success' ? '✓ Subida' :
+                   file.status === 'error' ? '✗ Error' :
+                   file.status === 'uploading' ? '⟳ Subiendo...' :
+                   '⋯ Pendiente'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Galería de imágenes */}
       <div>
@@ -384,13 +572,13 @@ const GalleryAdmin = () => {
 
       {/* Consejos */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h4 className="font-semibold text-gray-800 mb-2">💡 Ventajas de Cloudinary:</h4>
+        <h4 className="font-semibold text-gray-800 mb-2">💡 Consejos para subida múltiple:</h4>
         <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-          <li>✅ Plan gratuito generoso: 25GB de almacenamiento y 25GB de ancho de banda mensual</li>
-          <li>✅ Optimización automática de imágenes para carga rápida</li>
-          <li>✅ CDN global para cargar imágenes desde el servidor más cercano</li>
-          <li>✅ Redimensionamiento automático y thumbnails</li>
-          <li>✅ Muy confiable y profesional</li>
+          <li>✅ Puedes seleccionar múltiples imágenes a la vez (Ctrl/Cmd + Click)</li>
+          <li>✅ Las imágenes se suben una por una para evitar errores</li>
+          <li>✅ Verás el progreso de cada imagen en tiempo real</li>
+          <li>✅ Tamaño máximo por imagen: 10MB</li>
+          <li>✅ Plan gratuito de Cloudinary: 25GB de almacenamiento</li>
         </ul>
       </div>
     </div>

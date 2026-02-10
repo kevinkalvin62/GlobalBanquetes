@@ -7,9 +7,9 @@ import { db } from '../firebase';
 // 🖼️ CONFIGURACIÓN DE IMÁGENES
 const IMAGES = {
   carousel: [
-    'https://i.ibb.co/PZq75kY8/42.jpg',
-    'https://i.ibb.co/6Q0TC8T/05.jpg',
-    'https://i.ibb.co/rfchgMcR/24.jpg'
+    'https://i.ibb.co/zTbzJqLG/Whats-App-Image-2026-02-09-at-8-29-03-PM.jpg',
+    'https://i.ibb.co/xK4YRWhV/Whats-App-Image-2026-02-09-at-8-29-04-PM-4.jpg',
+    'https://i.ibb.co/ymnbZhgn/Whats-App-Image-2026-02-09-at-8-29-05-PM.jpg'
   ],
   services: {
     eventos: 'https://i.ibb.co/LzcMh1GS/35.jpg',
@@ -97,6 +97,13 @@ const GlobalBanquetes = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // ✅ NUEVO useEffect para cleanup cuando se desmonta el componente
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % IMAGES.carousel.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + IMAGES.carousel.length) % IMAGES.carousel.length);
 
@@ -166,33 +173,52 @@ const GlobalBanquetes = () => {
             </div>
           </div>
 
-          {/* Carousel Controls */}
+          {/* 🔥 MEJORADO: Carousel Controls - Ocultos en móvil, visibles en desktop */}
           <button
             onClick={prevSlide}
-            className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 backdrop-blur-md p-4 rounded-full transition-all duration-300 border border-white/20 hover:scale-110 group"
+            className="hidden md:flex absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 backdrop-blur-md p-4 rounded-full transition-all duration-300 border border-white/20 hover:scale-110 group"
           >
             <ChevronLeft className="text-white group-hover:scale-110 transition-transform" size={32} />
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 backdrop-blur-md p-4 rounded-full transition-all duration-300 border border-white/20 hover:scale-110 group"
+            className="hidden md:flex absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 backdrop-blur-md p-4 rounded-full transition-all duration-300 border border-white/20 hover:scale-110 group"
           >
             <ChevronRight className="text-white group-hover:scale-110 transition-transform" size={32} />
           </button>
 
-          {/* Carousel Indicators */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-3">
+          {/* 🔥 NUEVO: Carousel Indicators mejorados - Más grandes en móvil y con funcionalidad táctil */}
+          <div className="absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 flex space-x-3 md:space-x-4">
             {IMAGES.carousel.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentSlide(idx)}
                 className={`transition-all duration-500 rounded-full ${
                   idx === currentSlide 
-                    ? 'bg-white w-12 h-3 shadow-lg' 
-                    : 'bg-white/40 w-3 h-3 hover:bg-white/70'
+                    ? 'bg-white w-12 md:w-16 h-3 md:h-4 shadow-lg' 
+                    : 'bg-white/40 w-3 md:w-4 h-3 md:h-4 hover:bg-white/70'
                 }`}
+                aria-label={`Ir a imagen ${idx + 1}`}
               />
             ))}
+          </div>
+
+          {/* 🔥 NUEVO: Controles de swipe en móvil - Botones pequeños en las esquinas inferiores */}
+          <div className="md:hidden absolute bottom-24 left-0 right-0 flex justify-between px-4">
+            <button
+              onClick={prevSlide}
+              className="bg-white/20 backdrop-blur-md p-3 rounded-full transition-all duration-300 border border-white/30 active:scale-95"
+              aria-label="Imagen anterior"
+            >
+              <ChevronLeft className="text-white" size={20} />
+            </button>
+            <button
+              onClick={nextSlide}
+              className="bg-white/20 backdrop-blur-md p-3 rounded-full transition-all duration-300 border border-white/30 active:scale-95"
+              aria-label="Siguiente imagen"
+            >
+              <ChevronRight className="text-white" size={20} />
+            </button>
           </div>
         </div>
       </section>

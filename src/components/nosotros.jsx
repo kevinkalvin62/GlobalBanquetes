@@ -23,6 +23,13 @@ const Nosotros = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ✅ NUEVO useEffect para cleanup cuando se desmonta el componente
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50">
       

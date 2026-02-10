@@ -107,6 +107,13 @@ const Mobiliario = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ✅ NUEVO useEffect para cleanup cuando se desmonta el componente
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   const categorias = [
     {
       nombre: 'Mesas',
