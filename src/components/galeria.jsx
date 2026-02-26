@@ -8,7 +8,6 @@ const Galeria = () => {
   const [imagenes, setImagenes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Cargar imágenes desde Firebase al montar el componente
   useEffect(() => {
     loadGallery();
   }, []);
@@ -16,21 +15,32 @@ const Galeria = () => {
   const loadGallery = async () => {
     try {
       setLoading(true);
-      
-      // Cargar galería desde Firebase
       const galleryRef = doc(db, 'configuracion', 'galeria');
       const gallerySnap = await getDoc(galleryRef);
-      
+
       if (gallerySnap.exists()) {
-        const data = gallerySnap.data();
-        if (data.images && data.images.length > 0) {
-          setImagenes(data.images);
+        const meta = gallerySnap.data();
+
+        if (meta.totalChunks && meta.totalChunks > 1) {
+          let allImages = [];
+          for (let i = 0; i < meta.totalChunks; i++) {
+            const chunkRef = doc(db, 'configuracion', `galeria-chunk-${i}`);
+            const chunkSnap = await getDoc(chunkRef);
+            if (chunkSnap.exists()) {
+              allImages = [...allImages, ...(chunkSnap.data().images || [])];
+            }
+          }
+          if (allImages.length > 0) {
+            setImagenes(allImages);
+          } else {
+            loadFallbackImages();
+          }
+        } else if (meta.images && meta.images.length > 0) {
+          setImagenes(meta.images);
         } else {
-          // Si no hay imágenes en Firebase, cargar las de respaldo
           loadFallbackImages();
         }
       } else {
-        // Si no existe el documento, cargar imágenes de respaldo
         loadFallbackImages();
       }
     } catch (error) {
@@ -41,7 +51,6 @@ const Galeria = () => {
     }
   };
 
-  // Imágenes de respaldo (tus URLs originales de ImgBB)
   const loadFallbackImages = () => {
     const fallbackImages = [
       { id: 1, url: 'https://i.ibb.co/S7NGFVcF/40.jpg', name: 'Imagen 40', thumbnail: 'https://i.ibb.co/S7NGFVcF/40.jpg' },
@@ -64,13 +73,11 @@ const Galeria = () => {
       { id: 18, url: 'https://i.ibb.co/Y6RCTW6/23.jpg', name: 'Imagen 23', thumbnail: 'https://i.ibb.co/Y6RCTW6/23.jpg' },
       { id: 19, url: 'https://i.ibb.co/4gRmg83r/22.jpg', name: 'Imagen 22', thumbnail: 'https://i.ibb.co/4gRmg83r/22.jpg' },
       { id: 20, url: 'https://i.ibb.co/0pjWbZFW/21.jpg', name: 'Imagen 21', thumbnail: 'https://i.ibb.co/0pjWbZFW/21.jpg' }
-      // Agrega el resto de tus imágenes aquí...
     ];
     setImagenes(fallbackImages);
   };
 
   const handleImageClick = (imagen) => {
-    console.log('Imagen seleccionada:', imagen); 
     setSelectedImage(imagen);
     document.body.style.overflow = 'hidden';
   };
@@ -82,14 +89,12 @@ const Galeria = () => {
 
   const nextImage = () => {
     const currentIndex = imagenes.findIndex(img => img.id === selectedImage.id);
-    const nextIndex = (currentIndex + 1) % imagenes.length;
-    setSelectedImage(imagenes[nextIndex]);
+    setSelectedImage(imagenes[(currentIndex + 1) % imagenes.length]);
   };
 
   const prevImage = () => {
     const currentIndex = imagenes.findIndex(img => img.id === selectedImage.id);
-    const prevIndex = (currentIndex - 1 + imagenes.length) % imagenes.length;
-    setSelectedImage(imagenes[prevIndex]);
+    setSelectedImage(imagenes[(currentIndex - 1 + imagenes.length) % imagenes.length]);
   };
 
   useEffect(() => {
@@ -99,19 +104,14 @@ const Galeria = () => {
       if (e.key === 'ArrowRight') nextImage();
       if (e.key === 'ArrowLeft') prevImage();
     };
-
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [selectedImage, imagenes]);
 
-  // ✅ NUEVO useEffect para cleanup cuando se desmonta el componente
   useEffect(() => {
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
+    return () => { document.body.style.overflow = 'auto'; };
   }, []);
 
-  // Mostrar loader mientras carga
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50 flex items-center justify-center">
@@ -125,8 +125,8 @@ const Galeria = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50">
-      
-      {/* Floating Particles Background */}
+
+      {/* Floating Particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {[...Array(15)].map((_, i) => (
           <div
@@ -144,7 +144,7 @@ const Galeria = () => {
         ))}
       </div>
 
-      {/* Header Section - Compacto */}
+      {/* Header */}
       <section className="relative py-16 px-4">
         <div className="max-w-6xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-3 mb-4">
@@ -152,15 +152,12 @@ const Galeria = () => {
               <Camera className="text-white" size={24} />
             </div>
           </div>
-          
           <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 bg-clip-text text-transparent">
             Galería de Momentos
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Cada imagen cuenta una historia de dedicación, estilo y perfección
           </p>
-          
-          {/* Image counter */}
           <div className="mt-4 inline-block bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full shadow-md">
             <span className="text-gray-700 font-semibold">{imagenes.length} fotografías</span>
           </div>
@@ -181,22 +178,18 @@ const Galeria = () => {
                 <div
                   key={imagen.id}
                   className="group relative aspect-square rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-500 cursor-pointer"
-                  style={{ animationDelay: `${idx * 0.02}s` }}
                   onClick={() => handleImageClick(imagen)}
                 >
-                  {/* Image */}
-                  <img 
-                    src={imagen.thumbnail || imagen.url} 
-                    alt={imagen.name || `Imagen ${idx + 1}`} 
+                  <img
+                    src={imagen.thumbnail || imagen.url}
+                    alt={imagen.name || `Imagen ${idx + 1}`}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     loading="lazy"
                     onError={(e) => {
-                      // Si falla el thumbnail, usar la URL principal
-                      e.target.src = imagen.url;
+                      e.target.onerror = null; // ✅ Evita loop infinito
+                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23f3f4f6" width="400" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="16" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ESin imagen%3C/text%3E%3C/svg%3E';
                     }}
                   />
-                  
-                  {/* Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                     <div className="absolute bottom-0 left-0 right-0 p-4">
                       <div className="flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
@@ -205,8 +198,6 @@ const Galeria = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Shine effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                 </div>
               ))}
@@ -217,57 +208,61 @@ const Galeria = () => {
 
       {/* Lightbox Modal */}
       {selectedImage && (
-        <div 
-          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 animate-fadeIn"
+        <div
+          className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center animate-fadeIn"
           onClick={closeModal}
         >
-          {/* Close Button */}
+          {/* Botón Cerrar */}
           <button
             onClick={closeModal}
-            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm p-3 rounded-full transition-all duration-300 z-50 group"
+            className="absolute top-4 right-4 z-50 bg-white hover:bg-red-500 text-gray-800 hover:text-white p-3 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center gap-2"
           >
-            <X className="text-white group-hover:rotate-90 transition-transform duration-300" size={28} />
+            <X size={26} />
+            <span className="hidden sm:inline font-bold pr-1">Cerrar</span>
           </button>
 
-          {/* Previous Button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); prevImage(); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm p-4 rounded-full transition-all duration-300 hover:scale-110 group"
-          >
-            <ChevronLeft className="text-white group-hover:-translate-x-1 transition-transform" size={32} />
-          </button>
+          {/* Hint teclado - solo desktop */}
+          <div className="hidden md:block absolute top-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+            <span className="text-white/80 text-sm">Usa ← → o ESC para navegar</span>
+          </div>
 
-          {/* Next Button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); nextImage(); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm p-4 rounded-full transition-all duration-300 hover:scale-110 group"
+          {/* Imagen */}
+          <div
+            className="flex-1 flex items-center justify-center w-full px-4 py-4"
+            onClick={(e) => e.stopPropagation()}
           >
-            <ChevronRight className="text-white group-hover:translate-x-1 transition-transform" size={32} />
-          </button>
-
-          {/* Image */}
-          <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={selectedImage.url} 
+            <img
+              src={selectedImage.url}
               alt={selectedImage.name || 'Imagen'}
-              className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
-              onError={(e) => {
-                console.error('Error al cargar imagen:', selectedImage);
-                e.target.src = selectedImage.thumbnail || selectedImage.url;
-              }}
+              className="max-w-[92vw] max-h-[78vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+              onError={(e) => { e.target.onerror = null; }} // ✅ Evita loop
             />
           </div>
 
-          {/* Counter */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full">
-            <span className="text-white font-medium">
-              {imagenes.findIndex(img => img.id === selectedImage.id) + 1} / {imagenes.length}
-            </span>
-          </div>
+          {/* Barra inferior - navegación + contador */}
+          <div
+            className="w-full flex items-center justify-center gap-4 pb-6 px-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={prevImage}
+              className="bg-white/20 hover:bg-amber-500 backdrop-blur-sm text-white p-4 rounded-full transition-all duration-300 hover:scale-110 shadow-xl"
+            >
+              <ChevronLeft size={28} />
+            </button>
 
-          {/* Navigation hint */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-            <span className="text-white/80 text-sm">Usa ← → o ESC para navegar</span>
+            <div className="bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full">
+              <span className="text-white font-semibold text-lg">
+                {imagenes.findIndex(img => img.id === selectedImage.id) + 1} / {imagenes.length}
+              </span>
+            </div>
+
+            <button
+              onClick={nextImage}
+              className="bg-white/20 hover:bg-amber-500 backdrop-blur-sm text-white p-4 rounded-full transition-all duration-300 hover:scale-110 shadow-xl"
+            >
+              <ChevronRight size={28} />
+            </button>
           </div>
         </div>
       )}
@@ -277,19 +272,12 @@ const Galeria = () => {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(5deg); }
         }
-        
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        
-        .animate-float {
-          animation: float ease-in-out infinite;
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
+        .animate-float { animation: float ease-in-out infinite; }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
       `}</style>
     </div>
   );

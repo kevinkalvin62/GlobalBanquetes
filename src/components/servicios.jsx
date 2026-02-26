@@ -213,7 +213,7 @@ const Servicios = () => {
                 e.stopPropagation();
                 navigate('/contacto');
               }}
-              className={`${serviciosDetallados[servicio.id]?.length > 0 ? 'flex-1' : 'w-full'} bg-white border-2 border-gray-300 text-gray-700 py-2.5 md:py-3 rounded-xl font-semibold hover:border-gray-400 hover:bg-gray-50 transition-all duration-300 text-sm md:text-base`}
+              className={`flex-1 bg-white border-2 border-gray-300 text-gray-700 py-2.5 md:py-3 rounded-xl font-semibold hover:border-gray-400 hover:bg-gray-50 transition-all duration-300 text-sm md:text-base`}
             >
               Contacto
             </button>
@@ -444,8 +444,8 @@ const Servicios = () => {
                       key={idx}
                       onClick={() => setCurrentSlide(idx)}
                       className={`transition-all duration-300 rounded-full flex-shrink-0 ${idx === currentSlide
-                          ? 'bg-gradient-to-r ' + selectedCategoria.gradient + ' w-8 md:w-12 h-2 md:h-3'
-                          : 'bg-gray-300 w-2 md:w-3 h-2 md:h-3 hover:bg-gray-400'
+                        ? 'bg-gradient-to-r ' + selectedCategoria.gradient + ' w-8 md:w-12 h-2 md:h-3'
+                        : 'bg-gray-300 w-2 md:w-3 h-2 md:h-3 hover:bg-gray-400'
                         }`}
                     />
                   ))}
